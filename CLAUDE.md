@@ -28,14 +28,14 @@ Instructions pour Claude Code sur ce projet.
 - Test de connexion : `ssh ruben@robotpi.local "echo ok"` (doit afficher `ok`).
 - **Rien n'est installé côté Claude sur le Pi.** Toute commande ROS s'y exécute via SSH, par exemple :
   `ssh ruben@robotpi.local "source /opt/ros/jazzy/setup.bash && ros2 topic hz /imu"`
-- Le code s'écrit **ici, en local**, puis part sur le Pi (scp, ou push sur `reperer` + `git pull` sur le Pi).
+- Le code s'écrit **ici, en local** (versionné dans ce dépôt). **Pas de dépôt Git sur le Pi, pas de scp.** Envoi d'un fichier **par SSH uniquement** : `ssh ruben@robotpi.local "cat > ~/<chemin>" < <fichier_local>`, puis `colcon build` sur le Pi si c'est un paquet ROS.
 - WSL **ne voit pas** les topics ROS du Pi (isolement réseau) : toujours passer par SSH. Visualisation = Foxglove (`ws://<IP_Pi>:8765`).
 
 ## Règles de travail sur le Pi
 - **Ne jamais lancer de commande `sudo` via SSH** : l'utilisateur la tape lui-même. Proposer la commande, ne pas l'exécuter.
 - Avant tout test manuel d'un capteur, arrêter son service (`sudo systemctl stop imu` / `ldlidar`) — sinon conflit d'accès au capteur.
 - Installation de paquets sur le Pi : conflits fréquents (« held broken packages ») → `sudo aptitude install <paquet>`, accepter la solution **« Downgrade »**, refuser toute solution qui n'installe pas le paquet ou supprime `ros-jazzy-ros-base`.
-- Écrire les fichiers sur le Pi par scp/fichier, **jamais** par gros copier-coller dans un terminal (caractères parasites `[200~`).
+- **Jamais** de gros copier-coller de fichiers dans un terminal SSH (caractères parasites `[200~`) : envoyer le fichier par `ssh ... "cat > ..." < fichier`.
 
 ## Capteurs (en place et fonctionnels)
 | Capteur | Topic | Repère | Fréquence | Service au boot |
