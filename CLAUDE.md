@@ -1,11 +1,11 @@
 # CLAUDE.md — Robot ESME (commun à toute l'équipe)
 
 Instructions pour Claude Code, partagées par les 7 membres de l'équipe.
-Ce fichier vit sur `main`. Les notes propres à chaque lot sont dans `branches/<nom-de-branche>.md`.
+Ce fichier vit sur `main`.
 
 ## Au début de chaque séance
 1. Lance `git branch --show-current` pour connaître la branche de travail.
-2. Lis `branches/<nom-de-la-branche>.md` s'il existe : il contient le contexte du lot, l'avancement et la prochaine étape.
+2. Lance `git log --oneline -5` pour voir où en était la dernière séance.
 
 ## Le projet
 - Robot autonome qui guide les familles aux portes ouvertes de l'ESME (bouton → destination).
@@ -29,7 +29,7 @@ Chaque lot a sa branche ; `main` ne reçoit que du travail validé, via Pull Req
 - Expliquer chaque commande Git en une phrase avant ou pendant son exécution.
 - Ne pas modifier le code d'un autre lot sans demande explicite.
 - Ne jamais committer de secrets (.env, clés, mots de passe) ni de dossiers générés par ROS 2 (`build/`, `install/`, `log/`).
-- En fin de séance : lancer `/fin-de-seance` (met à jour `branches/<branche>.md`, commit, push).
+- En fin de séance : lancer `/fin-de-seance` (résumé de la séance, commit, push).
 
 ## Architecture du robot
 - **PC de développement** : Ubuntu 24.04 (WSL). Le code s'écrit et se versionne ici.
