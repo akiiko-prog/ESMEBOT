@@ -71,14 +71,14 @@ Instructions pour Claude Code sur ce projet.
 ## Où on en est
 _Dernière mise à jour : 2026-11-17_
 
-**Fait :**
-- LiDAR et IMU publiés au boot sur le Pi (`/scan` 10 Hz, `/imu` 50 Hz), gyro recalibré (≈ 0 à l'arrêt).
-- Connexion SSH par clé au Pi.
+**Fait pendant cette séance :**
+- Capteurs remis en route (LiDAR branché après le boot, faux contact I2C de l'IMU), gyro recalibré (≈ 0 à l'arrêt).
 - **Fusion IMU + odométrie laser** (rf2o + `robot_localization`) → `odom → base_link`. À l'arrêt : dérive < 1 cm / 0,6° en 30 s (contre ~10 cm / 4° rf2o seul).
-- SLAM branché sur la fusion (sans faux `odom`) : carte `maps/carte_fusion` (salle ~5 × 3,5 m, robot porté à la main). ⚠ Faite **avant** la correction d'orientation du LiDAR (yaw −90°) → à refaire avant Nav2.
-- Orientation du LiDAR mesurée et corrigée (`base_link → base_laser` yaw −90°).
+- SLAM branché sur la fusion (sans faux `odom`) : carte `maps/carte_fusion` (salle ~5 × 3,5 m). ⚠ Faite **avant** la correction d'orientation du LiDAR → à refaire.
+- Orientation du LiDAR mesurée et corrigée (`base_link → base_laser` yaw −90°, pas d'inversion gauche/droite).
+- Skill `/fin-de-seance` aligné sur `main`.
 
 **Prochaine étape :**
-- Tester la fusion **robot roulant** (dès que l'ESP32/moteurs sont branchés).
-- À définir avec l'équipe châssis : position réelle du LiDAR et de l'IMU (`base_link → base_laser`, `base_link → imu_link`).
-- Plus tard : régler les covariances (IMU, rf2o), rendre `ldlidar`/`imu` robustes (attente de `/dev/ttyUSB0`, erreurs I2C), corriger `maps/README.md` (utilise `scp`, ajouter `save_map_timeout`).
+- **Refaire la carte** avec le LiDAR bien orienté (`ros2 launch ~/fusion/slam.launch.py`, sauvegarde avec `save_map_timeout:=10.0`) et remplacer `maps/carte_fusion`.
+- Ensuite : tester la fusion robot roulant (ESP32/moteurs) ; positions réelles LiDAR/IMU avec l'équipe châssis.
+- Plus tard : covariances (IMU, rf2o) ; services robustes (attente du réseau et de `/dev/ttyUSB0` au boot, erreurs I2C) ; `sudo` sans mot de passe pour `systemctl restart ldlidar/imu` ; corriger `maps/README.md` (`scp`, `save_map_timeout`).
