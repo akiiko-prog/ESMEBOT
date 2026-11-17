@@ -47,6 +47,7 @@ Instructions pour Claude Code sur ce projet.
 | IMU GY-521 (MPU-6050, 6 axes, sans magnéto), I2C adresse `0x68` | `/imu` | `imu_link` | 50 Hz | `imu.service` |
 
 - Driver LiDAR : `~/ldlidar_ros2_ws` (paquet `ldlidar_stl_ros2`, launch `ld19.launch.py`). Deux correctifs pour Jazzy : `#include <pthread.h>` en tête de `ldlidar_driver/src/logger/log_module.cpp`, et `target_link_libraries(ldlidar_stl_ros2_node pthread)` **après** (pas dans) `ament_target_dependencies(...)`.
+- **Orientation du LiDAR** : son 0° (flèche sur le capteur) pointe vers la **droite** du robot (vérifié par mesure le 2026-11-17 : objet devant → +86°, à gauche → +173° dans `base_laser`). Corrigé dans `launch/ld19.launch.py` : `static_transform_publisher` `base_link → base_laser` = `'0','0','0.18','-1.5708','0','0'` (ordre x y z yaw pitch roll), puis `colcon build --packages-select ldlidar_stl_ros2` et relance de `ldlidar`.
 - Nœud IMU : `~/imu_ws` (paquet Python `imu_publisher`, exécutable `imu_node`). Calibre le biais du gyro pendant 2 s au démarrage → **capteur immobile au boot**. Gyro en rad/s, accéléro en m/s², `orientation_covariance[0] = -1`.
 - IMU montée à plat, axe Z vers le haut (`linear_acceleration.z ≈ +8,6` mesuré : accéléro non calibré, ~12 % sous 9,8). Biais gyro propre au capteur ≈ y −4,3 °/s, z −3,0 °/s, compensé par la calibration au démarrage.
 - Pièges connus : si le LiDAR est branché **après** le boot, le driver meurt mais `ldlidar.service` reste « active » (le TF statique tourne) → pas de `/scan`, relancer le service. Erreurs I2C `Errno 121` (faux contact) → `imu_node` plante ou se fige sans publier : vérifier le câblage puis relancer `imu`.
@@ -58,7 +59,7 @@ Instructions pour Claude Code sur ce projet.
   - `fusion.launch.py` : rf2o (`publish_tf: false`) + EKF + `base_link → imu_link` (**provisoire** : identité).
   - `slam.launch.py` : fusion + slam_toolbox + foxglove_bridge (port 8765).
   - `mapper_params_online_async.yaml` : `base_frame: base_link`.
-- Arbre des repères : `map` (slam_toolbox) → `odom` (EKF) → `base_link` → `base_laser` (ldlidar, z = 0,18 m) / `imu_link`. Plus de faux `odom`.
+- Arbre des repères : `map` (slam_toolbox) → `odom` (EKF) → `base_link` → `base_laser` (ldlidar, z = 0,18 m, yaw −90°) / `imu_link`. Plus de faux `odom`.
 - Lancer : `source /opt/ros/jazzy/setup.bash && source ~/rf2o_ws/install/setup.bash && ros2 launch ~/fusion/slam.launch.py`
 - Sauvegarde de carte (pendant que slam_toolbox tourne) : `ros2 run nav2_map_server map_saver_cli -f ~/<nom> --ros-args -p save_map_timeout:=10.0` (avec le délai par défaut de 2 s → « Failed to spin map subscription »). Les cartes du dépôt vont dans `maps/`.
 
@@ -74,7 +75,8 @@ _Dernière mise à jour : 2026-11-17_
 - LiDAR et IMU publiés au boot sur le Pi (`/scan` 10 Hz, `/imu` 50 Hz), gyro recalibré (≈ 0 à l'arrêt).
 - Connexion SSH par clé au Pi.
 - **Fusion IMU + odométrie laser** (rf2o + `robot_localization`) → `odom → base_link`. À l'arrêt : dérive < 1 cm / 0,6° en 30 s (contre ~10 cm / 4° rf2o seul).
-- SLAM branché sur la fusion (sans faux `odom`) : carte `maps/carte_fusion` (salle ~5 × 3,5 m, robot porté à la main).
+- SLAM branché sur la fusion (sans faux `odom`) : carte `maps/carte_fusion` (salle ~5 × 3,5 m, robot porté à la main). ⚠ Faite **avant** la correction d'orientation du LiDAR (yaw −90°) → à refaire avant Nav2.
+- Orientation du LiDAR mesurée et corrigée (`base_link → base_laser` yaw −90°).
 
 **Prochaine étape :**
 - Tester la fusion **robot roulant** (dès que l'ESP32/moteurs sont branchés).
