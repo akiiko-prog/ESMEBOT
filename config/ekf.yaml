@@ -1,0 +1,48 @@
+# Fusion IMU + odometrie laser (rf2o) avec robot_localization
+# Produit le repere odom -> base_link (remplace le faux "odom" du SLAM).
+#
+# Repartition des roles (sans recouvrement, car rf2o et imu_node
+# publient des covariances nulles = "mesure parfaite" pour l'EKF) :
+#   - /odom_rf2o : vitesse lineaire vx, vy  -> la distance parcourue
+#   - /imu       : vitesse de rotation vyaw -> la rotation (gyro z)
+#
+# Ordre des 15 booleens de chaque *_config :
+#   [ x,  y,  z,
+#     roll, pitch, yaw,
+#     vx, vy, vz,
+#     vroll, vpitch, vyaw,
+#     ax, ay, az ]
+
+ekf_filter_node:
+  ros__parameters:
+    frequency: 30.0
+    sensor_timeout: 0.5
+    two_d_mode: true            # robot au sol : on ignore z, roulis, tangage
+    publish_tf: true            # c'est l'EKF qui publie odom -> base_link
+
+    map_frame: map
+    odom_frame: odom
+    base_link_frame: base_link
+    world_frame: odom
+
+    # Odometrie laser (rf2o) : vitesses lineaires seulement
+    odom0: /odom_rf2o
+    odom0_config: [false, false, false,
+                   false, false, false,
+                   true,  true,  false,
+                   false, false, false,
+                   false, false, false]
+    odom0_differential: false
+    odom0_relative: false
+
+    # IMU (MPU-6050) : vitesse de rotation autour de z seulement
+    # (pas d'orientation absolue : orientation_covariance[0] = -1, pas de magneto)
+    imu0: /imu
+    imu0_config: [false, false, false,
+                  false, false, false,
+                  false, false, false,
+                  false, false, true,
+                  false, false, false]
+    imu0_differential: false
+    imu0_relative: false
+    imu0_remove_gravitational_acceleration: true
