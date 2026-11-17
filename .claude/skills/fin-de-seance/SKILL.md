@@ -1,6 +1,6 @@
 ---
 name: fin-de-seance
-description: Clôture une séance de travail - résume l'avancement et la prochaine étape, fait un commit, puis pousse sur la branche courante (jamais sur main).
+description: Clôture une séance de travail - met à jour la section « Où on en est » du CLAUDE.md de la branche, fait un commit, puis pousse sur la branche courante (jamais sur main).
 disable-model-invocation: true
 ---
 
@@ -16,20 +16,29 @@ Explique chaque étape en français simple : l'utilisateur débute peut-être so
 - Lance `git status` et `git diff --stat` pour voir ce qui a changé.
 - S'il n'y a aucun changement, dis-le et passe quand même à l'étape 2.
 
-## 2. Résumer la séance
+## 2. Mettre à jour le `CLAUDE.md` de la branche
 
-- **Ne modifie pas `CLAUDE.md`** : il est commun à toute l'équipe et ne change que par Pull Request.
-- Prépare un résumé court :
-  - **Fait pendant cette séance :** 2 à 5 puces ;
-  - **Prochaine étape :** la prochaine chose concrète à faire.
-- Montre-le à l'utilisateur et demande-lui s'il veut corriger la prochaine étape.
+- Chaque branche de lot a son propre `CLAUDE.md` (il n'y en a pas sur `main`). S'il n'existe pas, demande à l'utilisateur avant d'en créer un.
+- Remplace la section `## Où on en est` (ou crée-la à la fin du fichier) par :
+
+  ## Où on en est
+  _Dernière mise à jour : <date du jour>_
+
+  **Fait pendant cette séance :**
+  - <résumé en 2 à 5 puces de ce qu'on a fait>
+
+  **Prochaine étape :**
+  - <la prochaine chose concrète à faire>
+
+- Ne garde qu'UNE seule section « Où on en est » : remplace l'ancienne, n'en ajoute pas une nouvelle à chaque fois.
+- Ne touche pas aux autres sections du fichier.
+- Montre le texte à l'utilisateur et demande-lui s'il veut corriger la prochaine étape.
 
 ## 3. Commit
 
-- Ajoute les fichiers modifiés avec `git add`.
+- Ajoute les fichiers modifiés avec `git add` (y compris `CLAUDE.md`).
 - N'ajoute jamais de fichiers de secrets (.env, clés, mots de passe) ni de gros fichiers générés (`build/`, `install/`, `log/` de ROS 2). Si tu en vois, signale-les.
-- Écris un message de commit en français : une première ligne courte qui résume la séance, puis le résumé de l'étape 2 (fait + prochaine étape) dans le corps du message.
-- S'il n'y a aucun changement, saute le commit et le push, et donne simplement le résumé.
+- Écris un message de commit court et clair, en français, qui résume la séance.
 - Lance `git commit`.
 
 ## 4. Push
