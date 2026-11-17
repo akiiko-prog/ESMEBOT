@@ -48,12 +48,19 @@ Instructions pour Claude Code sur ce projet.
 
 - Driver LiDAR : `~/ldlidar_ros2_ws` (paquet `ldlidar_stl_ros2`, launch `ld19.launch.py`). Deux correctifs pour Jazzy : `#include <pthread.h>` en tête de `ldlidar_driver/src/logger/log_module.cpp`, et `target_link_libraries(ldlidar_stl_ros2_node pthread)` **après** (pas dans) `ament_target_dependencies(...)`.
 - Nœud IMU : `~/imu_ws` (paquet Python `imu_publisher`, exécutable `imu_node`). Calibre le biais du gyro pendant 2 s au démarrage → **capteur immobile au boot**. Gyro en rad/s, accéléro en m/s², `orientation_covariance[0] = -1`.
-- IMU montée à plat, axe Z vers le haut (`linear_acceleration.z ≈ +9,8`).
+- IMU montée à plat, axe Z vers le haut (`linear_acceleration.z ≈ +8,6` mesuré : accéléro non calibré, ~12 % sous 9,8). Biais gyro propre au capteur ≈ y −4,3 °/s, z −3,0 °/s, compensé par la calibration au démarrage.
+- Pièges connus : si le LiDAR est branché **après** le boot, le driver meurt mais `ldlidar.service` reste « active » (le TF statique tourne) → pas de `/scan`, relancer le service. Erreurs I2C `Errno 121` (faux contact) → `imu_node` plante ou se fige sans publier : vérifier le câblage puis relancer `imu`.
 
-## SLAM
-- `slam_toolbox` + `nav2_map_server` installés sur le Pi. Config : `~/mapper_params_online_async.yaml` (`base_frame: base_laser`, `odom_frame: odom`, `scan_topic: /scan`).
-- Démo actuelle **sans odométrie** : faux repère `static_transform_publisher 0 0 0 0 0 0 odom base_laser` → fragile.
-- Sauvegarde de carte : `ros2 run nav2_map_server map_saver_cli -f ~/<nom>` (pendant que slam_toolbox tourne). Les cartes du dépôt vont dans `maps/`.
+## Fusion et SLAM
+- Paquets sur le Pi : `slam_toolbox` (2.8.5, nœud à cycle de vie → lancé via son `online_async_launch.py`), `nav2_map_server`, `robot_localization` (apt), `foxglove_bridge`, et `rf2o_laser_odometry` compilé depuis les sources dans `~/rf2o_ws` (branche `ros2` de MAPIRlab, pas de paquet apt pour Jazzy).
+- Fichiers versionnés dans `config/`, copiés sur le Pi dans `~/fusion/` (par `ssh ... "cat > ..."`) :
+  - `ekf.yaml` : EKF `robot_localization` en 2D. **vx, vy** depuis `/odom_rf2o`, **vyaw** depuis `/imu`, sans recouvrement, car rf2o et `imu_node` publient des covariances nulles (« mesure parfaite »). Publie `odom → base_link` et `/odometry/filtered` (30 Hz).
+  - `fusion.launch.py` : rf2o (`publish_tf: false`) + EKF + `base_link → imu_link` (**provisoire** : identité).
+  - `slam.launch.py` : fusion + slam_toolbox + foxglove_bridge (port 8765).
+  - `mapper_params_online_async.yaml` : `base_frame: base_link`.
+- Arbre des repères : `map` (slam_toolbox) → `odom` (EKF) → `base_link` → `base_laser` (ldlidar, z = 0,18 m) / `imu_link`. Plus de faux `odom`.
+- Lancer : `source /opt/ros/jazzy/setup.bash && source ~/rf2o_ws/install/setup.bash && ros2 launch ~/fusion/slam.launch.py`
+- Sauvegarde de carte (pendant que slam_toolbox tourne) : `ros2 run nav2_map_server map_saver_cli -f ~/<nom> --ros-args -p save_map_timeout:=10.0` (avec le délai par défaut de 2 s → « Failed to spin map subscription »). Les cartes du dépôt vont dans `maps/`.
 
 ## Décisions d'équipe
 - **Pas d'encodeurs de roues** (les roues sont motorisées, mais sans mesure de leur rotation). Source de mouvement = **IMU (gyro) + scan matching du LiDAR**.
@@ -61,14 +68,15 @@ Instructions pour Claude Code sur ce projet.
 - Nav2 : plus tard (robot roulant + carte de l'école nécessaires).
 
 ## Où on en est
-_Dernière mise à jour : 2026-11-16_
+_Dernière mise à jour : 2026-11-17_
 
 **Fait :**
-- LiDAR et IMU publiés au boot sur le Pi (`/scan`, `/imu`).
-- Première carte SLAM avec slam_toolbox (sans odométrie).
+- LiDAR et IMU publiés au boot sur le Pi (`/scan` 10 Hz, `/imu` 50 Hz), gyro recalibré (≈ 0 à l'arrêt).
 - Connexion SSH par clé au Pi.
+- **Fusion IMU + odométrie laser** (rf2o + `robot_localization`) → `odom → base_link`. À l'arrêt : dérive < 1 cm / 0,6° en 30 s (contre ~10 cm / 4° rf2o seul).
+- SLAM branché sur la fusion (sans faux `odom`) : carte `maps/carte_fusion` (salle ~5 × 3,5 m, robot porté à la main).
 
 **Prochaine étape :**
-- **Fusion IMU + scan avec `robot_localization`** : produire un repère `odom` à partir de `/imu` (et du scan matching) pour remplacer le faux `odom` du SLAM.
-- À définir avec l'équipe châssis : position du LiDAR et de l'IMU sur le robot (`base_link → base_laser`, `base_link → imu_link`).
-- Gyro z à ≈ −0,024 rad/s à l'arrêt : recalibrer (`sudo systemctl restart imu`, robot immobile).
+- Tester la fusion **robot roulant** (dès que l'ESP32/moteurs sont branchés).
+- À définir avec l'équipe châssis : position réelle du LiDAR et de l'IMU (`base_link → base_laser`, `base_link → imu_link`).
+- Plus tard : régler les covariances (IMU, rf2o), rendre `ldlidar`/`imu` robustes (attente de `/dev/ttyUSB0`, erreurs I2C), corriger `maps/README.md` (utilise `scp`, ajouter `save_map_timeout`).
