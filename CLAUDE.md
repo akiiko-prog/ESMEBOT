@@ -11,7 +11,7 @@ Instructions pour Claude Code sur ce projet.
 
 ## Règles Git
 - Toujours travailler sur la branche `reperer`.
-- Ne jamais pousser sur `main`.
+- `main` ne sert **qu'aux skills** (`.claude/skills/`). Ne jamais y pousser sans l'accord explicite de l'utilisateur, demandé **à chaque fois**, et uniquement des fichiers de `.claude/skills/`.
 - Ne jamais utiliser `git push --force`, `git reset --hard` ni supprimer une branche (locale ou distante) sans demander l'accord explicite de l'utilisateur au préalable.
 - Expliquer chaque commande Git en une phrase avant ou en même temps que son exécution.
 - Sur cette branche, seul le dossier `maps/` est propre au lot (cartes SLAM). Les skills viennent de `main` (`.claude/skills/`).
